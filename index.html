@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+<style>#map {
+  height: 100%;
+  width: 100%;
+}
+img{
+width: 200px
+}
+.container, .container > div, .container > div #map {
+    height: inherit;
+}
+.gm-style .controls {
+  font-size: 28px;
+  /* this adjusts the size of all the controls */
+  background-color: white;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 1px 4px -1px;
+  box-sizing: border-box;
+  border-radius: 2px;
+  cursor: pointer;
+  font-weight: 300;
+  height: 1em;
+  margin: 6px;
+  text-align: center;
+  user-select: none;
+  padding: 2px;
+  width: 1em;
+}
+
+.gm-style .controls button {
+  border: 0;
+  background-color: white;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.gm-style .controls button:hover {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.gm-style .controls.zoom-control {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+}
+
+.gm-style .controls.zoom-control button {
+  font: 0.85em Arial;
+  margin: 1px;
+  padding: 0;
+}
+
+.gm-style .controls.maptype-control {
+  display: flex;
+  flex-direction: row;
+  width: auto;
+}
+
+.gm-style .controls.maptype-control button {
+  display: inline-block;
+  font-size: 0.5em;
+  margin: 0 1px;
+  padding: 0 6px;
+}
+
+.gm-style
+  .controls.maptype-control.maptype-control-is-map
+  .maptype-control-map {
+  font-weight: 700;
+}
+
+.gm-style
+  .controls.maptype-control.maptype-control-is-satellite
+  .maptype-control-satellite {
+  font-weight: 700;
+}
+
+.gm-style .controls.fullscreen-control button {
+  display: block;
+  font-size: 1em;
+  height: 100%;
+  width: 100%;
+}
+
+.gm-style .controls.fullscreen-control .fullscreen-control-icon {
+  border-style: solid;
+  height: 0.25em;
+  position: absolute;
+  width: 0.25em;
+}
+
+.gm-style
+  .controls.fullscreen-control
+  .fullscreen-control-icon.fullscreen-control-top-left {
+  border-width: 2px 0 0 2px;
+  left: 0.1em;
+  top: 0.1em;
+}
+
+.gm-style
+  .controls.fullscreen-control.is-fullscreen
+  .fullscreen-control-icon.fullscreen-control-top-left {
+  border-width: 0 2px 2px 0;
+}
+
+.gm-style
+  .controls.fullscreen-control
+  .fullscreen-control-icon.fullscreen-control-top-right {
+  border-width: 2px 2px 0 0;
+  right: 0.1em;
+  top: 0.1em;
+}
+
+.gm-style
+  .controls.fullscreen-control.is-fullscreen
+  .fullscreen-control-icon.fullscreen-control-top-right {
+  border-width: 0 0 2px 2px;
+}
+
+.gm-style
+  .controls.fullscreen-control
+  .fullscreen-control-icon.fullscreen-control-bottom-left {
+  border-width: 0 0 2px 2px;
+  left: 0.1em;
+  bottom: 0.1em;
+}
+
+.gm-style
+  .controls.fullscreen-control.is-fullscreen
+  .fullscreen-control-icon.fullscreen-control-bottom-left {
+  border-width: 2px 2px 0 0;
+}
+
+.gm-style
+  .controls.fullscreen-control
+  .fullscreen-control-icon.fullscreen-control-bottom-right {
+  border-width: 0 2px 2px 0;
+  right: 0.1em;
+  bottom: 0.1em;
+}
+
+.gm-style
+  .controls.fullscreen-control.is-fullscreen
+  .fullscreen-control-icon.fullscreen-control-bottom-right {
+  border-width: 2px 0 0 2px;
+}
+</style>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+</head>
+<body onload="initialiseMap()">
+     <div class="container">
+      </div>
+<script>var map;
+var locations = [];
+function initialiseMap() {
+  console.log('initialise');
+  // Load data from an example Google spreadsheet that contains latitude and longitude columns using Google Sheets API v4 that returns JSON.
+  // Replace the ID of your Google spreadsheet and you API key in the URL:
+  // https://sheets.googleapis.com/v4/spreadsheets/ID_OF_YOUR_GOOGLE_SPREADSHEET/values/Sheet1!A2:P?key=YOUR_API_KEY
+  // Also make sure your API key is authorised to access Google Sheets API - you can enable that through your Google Developer console.
+  // Finally, in the URL, fix the sheet name and the range that you are accessing from your spreadsheet. 'Sheet1' is the default name for the first sheet.
+  $.getJSON("https://sheets.googleapis.com/v4/spreadsheets/1e3jyoNvS2_oDGlYuwNHB7SDRntTFyfDLcQgqRqjAPtw/values/Consol!A2:S?key=AIzaSyAW7AGHElos8CE9IpMYm2-maHYXje1XN1E", function(data) {
+    	// data.values contains the array of rows from the spreadsheet. Each row is also an array of cell values.
+    	// Modify the code below to suit the structure of your spreadsheet.
+    	$(data.values).each(function() {
+    		var location = {};
+				location.title = this[1];
+				location.latitude = parseFloat(this[16]);
+      	        location.longitude = parseFloat(this[17]);
+                location.Updater = this[3];
+       	        location.image = this[18];
+                location.Description = this[6];
+                location.url = this[15];
+	  		    locations.push(location);
+    	});
+function setLocations(map, locations) {
+  var bounds = new google.maps.LatLngBounds();
+  // Create nice, customised pop-up boxes, to appear when the marker is clicked on
+  var infowindow = new google.maps.InfoWindow({
+    content: "Content String"
+  });
+  for (var i = 0; i < locations.length; i++) {
+    var new_marker = createMarker(map, locations[i], infowindow);
+    bounds.extend(new_marker.position);
+  }
+  map.fitBounds(bounds);
+}
+function createMarker(map, location, infowindow) {
+  // Modify the code below to suit the structure of your spreadsheet (stored in variable 'location')
+  var position = {
+    lat: parseFloat(location.latitude),
+    lng: parseFloat(location.longitude)
+  };
+  var marker = new google.maps.Marker({
+    position: position,
+    map: map,
+    title: location.title,
+  });
+  google.maps.event.addListener(marker, 'click', function() {
+    infowindow.setContent('<div>'+
+    '<p><strong>' + ((location.url === undefined) ? location.title : ('<a href="' + location.url +'">' + location.title + '</a>')) + '</strong></p>' +
+    ((location.Updater === undefined) ? "" : ('<p><strong>Updated by: </strong>' + location.Updater + '</p>')) +
+    ((location.image === undefined) ? "" : ('<p><strong>Image: </strong>' + location.image + '</p>')) +
+    ((location.Description === undefined) ? "" : ('<p><strong>Description: </strong>' + location.Description + '</p>')) +
+    '</div>');
+    infowindow.open(map, marker);
+  });
+  return marker;
+}
+      // Center on (0, 0). Map center and zoom will reconfigure later (fitbounds method)
+      var mapOptions = {
+        zoom: 10,
+        center: new google.maps.LatLng(0, 0),
+        zoomControl: true,
+  mapTypeControl:true,
+  scaleControl: true,
+  streetViewControl: true,
+  rotateControl: true,
+  fullscreenControl: true 	
+      };
+      var map = new google.maps.Map(document.getElementById('map'), mapOptions);
+      setLocations(map, locations);
+  });
+  initZoomControl(map);
+  initMapTypeControl(map);
+  initFullscreenControl(map);
+function initZoomControl(map) {
+  document.querySelector(".zoom-control-in").onclick = function () {
+    map.setZoom(map.getZoom() + 1);
+  };
+
+  document.querySelector(".zoom-control-out").onclick = function () {
+    map.setZoom(map.getZoom() - 1);
+  };
+  map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(
+    document.querySelector(".zoom-control")
+  );
+}
+
+function initMapTypeControl(map) {
+  const mapTypeControlDiv = document.querySelector(".maptype-control");
+
+  document.querySelector(".maptype-control-map").onclick = function () {
+    mapTypeControlDiv.classList.add("maptype-control-is-map");
+    mapTypeControlDiv.classList.remove("maptype-control-is-satellite");
+    map.setMapTypeId("roadmap");
+  };
+
+  document.querySelector(".maptype-control-satellite").onclick = function () {
+    mapTypeControlDiv.classList.remove("maptype-control-is-map");
+    mapTypeControlDiv.classList.add("maptype-control-is-satellite");
+    map.setMapTypeId("hybrid");
+  };
+  map.controls[google.maps.ControlPosition.LEFT_TOP].push(mapTypeControlDiv);
+}
+
+function initFullscreenControl(map) {
+  const elementToSendFullscreen = map.getDiv().firstChild;
+  const fullscreenControl = document.querySelector(".fullscreen-control");
+  map.controls[google.maps.ControlPosition.RIGHT_TOP].push(fullscreenControl);
+
+  fullscreenControl.onclick = function () {
+    if (isFullscreen(elementToSendFullscreen)) {
+      exitFullscreen();
+    } else {
+      requestFullscreen(elementToSendFullscreen);
+    }
+  };
+
+  document.onwebkitfullscreenchange = document.onmsfullscreenchange = document.onmozfullscreenchange = document.onfullscreenchange = function () {
+    if (isFullscreen(elementToSendFullscreen)) {
+      fullscreenControl.classList.add("is-fullscreen");
+    } else {
+      fullscreenControl.classList.remove("is-fullscreen");
+    }
+  };
+}
+
+function isFullscreen(element) {
+  return (
+    (document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement) == element
+  );
+}
+
+function requestFullscreen(element) {
+  if (element.requestFullscreen) {
+    element.requestFullscreen();
+  } else if (element.webkitRequestFullScreen) {
+    element.webkitRequestFullScreen();
+  } else if (element.mozRequestFullScreen) {
+    element.mozRequestFullScreen();
+  } else if (element.msRequestFullScreen) {
+    element.msRequestFullScreen();
+  }
+}
+
+function exitFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen();
+  } else if (document.mozCancelFullScreen) {
+    document.mozCancelFullScreen();
+  } else if (document.msExitFullscreen) {
+    document.msExitFullscreen();
+  }
+}
+  const map = google.maps.Map(document.getElementById("map"), {
+    zoom: 12,
+    center: { lat: 21.028511, lng: 105.804817 },
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+      position: google.maps.ControlPosition.TOP_CENTER,
+    },
+    zoomControl: true,
+    zoomControlOptions: {
+    position: google.maps.ControlPosition.LEFT_CENTER,
+    },
+    scaleControl: true,
+    streetViewControl: false,
+    streetViewControlOptions: {
+      position: google.maps.ControlPosition.LEFT_TOP,
+    },
+    fullscreenControl: true,
+  });
+}
+</script>
+
+<div id="map"></div>
+ <div style="display: none">
+ <div class="controls zoom-control">
+        <button class="zoom-control-in" title="Zoom In">+</button>
+        <button class="zoom-control-out" title="Zoom Out">−</button>
+      </div>
+      <div class="controls maptype-control maptype-control-is-map">
+        <button class="maptype-control-map" title="Show road map">Map</button>
+        <button
+          class="maptype-control-satellite"
+          title="Show satellite imagery"
+        >
+          Satellite
+        </button>
+      </div>
+      <div class="controls fullscreen-control">
+        <button title="Toggle Fullscreen">
+          <div
+            class="fullscreen-control-icon fullscreen-control-top-left"
+          ></div>
+          <div
+            class="fullscreen-control-icon fullscreen-control-top-right"
+          ></div>
+          <div
+            class="fullscreen-control-icon fullscreen-control-bottom-left"
+          ></div>
+          <div
+            class="fullscreen-control-icon fullscreen-control-bottom-right"
+          ></div>
+        </button>
+      </div>
+    </div>
+<!-- Replace the value of the key parameter in the call to the Google Maps JavaScript API URL below with your own API key. -->
+<!-- Make sure your API key is authorised to access the Google Maps API - you can enable that through your Google Developer console. -->
+<script async defer
+       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAW7AGHElos8CE9IpMYm2-maHYXje1XN1E&callback=initialiseMap">
+</script>
+</body>
+</html>
+f
